@@ -331,8 +331,8 @@ std::unique_ptr<ParquetTypeWithId> ReaderBase::getParquetColumnInfo(
     } else {
       if (schemaElement.repetition_type ==
           thrift::FieldRepetitionType::REPEATED) {
-        VELOX_CHECK_LE(
-            children.size(), 2, "children size should not be larger than 2");
+        //VELOX_CHECK_LE(
+            //children.size(), 2, "children size should not be larger than 2");
         if (children.size() == 1) {
           // child of LIST
           auto type = TypeFactory<TypeKind::ARRAY>::create(children[0]->type());
