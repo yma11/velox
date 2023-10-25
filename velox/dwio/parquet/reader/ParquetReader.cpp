@@ -362,7 +362,21 @@ std::unique_ptr<ParquetTypeWithId> ReaderBase::getParquetColumnInfo(
               std::nullopt,
               maxRepeat,
               maxDefine);
-        }
+        } else {
+          // Row type
+	  auto type = createRowType(children, isFileColumnNamesReadAsLowerCase());
+          return std::make_unique<ParquetTypeWithId>(
+              std::move(type),
+              std::move(children),
+              curSchemaIdx,
+              maxSchemaElementIdx,
+              ParquetTypeWithId::kNonLeaf, // columnIdx,
+              std::move(name),
+              std::nullopt,
+	      std::nullopt,
+              maxRepeat,
+              maxDefine);
+	}
       } else {
         // Row type
         auto type = createRowType(children, isFileColumnNamesReadAsLowerCase());
