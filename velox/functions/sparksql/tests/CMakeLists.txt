@@ -39,7 +39,6 @@ add_executable(
   SizeTest.cpp
   SortArrayTest.cpp
   SparkCastExprTest.cpp
-  SplitFunctionsTest.cpp
   StringTest.cpp
   StringToMapTest.cpp
   UnscaledValueFunctionTest.cpp
