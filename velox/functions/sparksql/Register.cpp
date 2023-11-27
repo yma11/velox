@@ -24,7 +24,6 @@
 #include "velox/functions/lib/Repeat.h"
 #include "velox/functions/prestosql/ArrayFunctions.h"
 #include "velox/functions/prestosql/DateTimeFunctions.h"
-#include "velox/functions/prestosql/JsonFunctions.h"
 #include "velox/functions/prestosql/StringFunctions.h"
 #include "velox/functions/sparksql/ArrayMinMaxFunction.h"
 #include "velox/functions/sparksql/ArraySort.h"
@@ -39,6 +38,7 @@
 #include "velox/functions/sparksql/RegexFunctions.h"
 #include "velox/functions/sparksql/RegisterArithmetic.h"
 #include "velox/functions/sparksql/RegisterCompare.h"
+#include "velox/functions/sparksql/SIMDJsonFunctions.h"
 #include "velox/functions/sparksql/Size.h"
 #include "velox/functions/sparksql/SparkPartitionId.h"
 #include "velox/functions/sparksql/String.h"
@@ -165,7 +165,7 @@ void registerFunctions(const std::string& prefix) {
 
   registerRegexpReplace(prefix);
 
-  registerFunction<JsonExtractScalarFunction, Varchar, Varchar, Varchar>(
+  registerFunction<SIMDGetJsonObjectFunction, Varchar, Varchar, Varchar>(
       {prefix + "get_json_object"});
 
   // Register string functions.
