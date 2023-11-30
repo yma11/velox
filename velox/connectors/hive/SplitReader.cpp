@@ -269,6 +269,7 @@ bool SplitReader::checkIfSplitIsEmpty(
     }
   }
 
+  ++runtimeStats.processedSplits;
   return emptySplit_;
 }
 
