@@ -157,6 +157,8 @@ void SplitReader::prepareSplit(
     return;
   }
 
+  ++runtimeStats.processedSplits;
+  
   auto& fileType = baseReader_->rowType();
   auto columnTypes = adaptColumns(fileType, baseReaderOpts_.getFileSchema());
 
