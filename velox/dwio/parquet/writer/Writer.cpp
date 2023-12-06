@@ -142,9 +142,10 @@ namespace {
 void exportToArrow(
     const TypePtr& type,
     std::shared_ptr<memory::MemoryPool> pool,
-    ArrowSchema& out) {
+    ArrowSchema& out,
+    const ArrowOptions& options) {
   auto leafPool = pool->addLeafChild("parquet-write-schema-convert");
-  exportToArrow(BaseVector::create(type, 0, leafPool.get()), out);
+  exportToArrow(BaseVector::create(type, 0, leafPool.get()), out, options);
 }
 
 } // namespace
@@ -170,7 +171,7 @@ Writer::Writer(
 
   if (options.schema) {
     ArrowSchema arrowSchema;
-    exportToArrow(options.schema, pool_, arrowSchema);
+    exportToArrow(options.schema, pool_, arrowSchema, options_);
 
     PARQUET_ASSIGN_OR_THROW(
         arrowContext_->schema, ::arrow::ImportSchema(&arrowSchema));
