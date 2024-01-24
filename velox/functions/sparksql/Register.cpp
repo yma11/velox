@@ -195,7 +195,7 @@ void registerFunctions(const std::string& prefix) {
       prefix + "regexp_extract", re2ExtractSignatures(), makeRegexExtract);
   exec::registerStatefulVectorFunction(
       prefix + "rlike", re2SearchSignatures(), makeRLike);
-  registerRegexReplace(prefix);
+  registerRegexpReplace(prefix);
   exec::registerStatefulVectorFunction(
       prefix + "split", re2SplitAllSignatures(), makeRe2SplitAll);
 
