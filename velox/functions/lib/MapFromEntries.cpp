@@ -30,9 +30,14 @@ static const char* kIndeterminateKeyErrorMessage =
     "map key cannot be indeterminate";
 static const char* kErrorMessageEntryNotNull = "map entry cannot be null";
 
-// See documentation at https://prestodb.io/docs/current/functions/map.html
 class MapFromEntriesFunction : public exec::VectorFunction {
  public:
+  // @param allowNullEle If true, will return null if map has
+  // an entry with null as key or map is null (Spark's behavior)
+  // instead of throw execeptions(Presto's behavior)
+  explicit MapFromEntriesFunction(bool allowNullEle)
+      : allowNullEle_(allowNullEle) {}
+
   void apply(
       const SelectivityVector& rows,
       std::vector<VectorPtr>& args,
@@ -94,14 +99,14 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     auto& inputValueVector = inputArray->elements();
     exec::LocalDecodedVector decodedRowVector(context);
     decodedRowVector.get()->decode(*inputValueVector);
-    // If the input array(unknown) then all rows should have errors.
     if (inputValueVector->typeKind() == TypeKind::UNKNOWN) {
-      try {
-        VELOX_USER_FAIL(kErrorMessageEntryNotNull);
-      } catch (...) {
-        context.setErrors(rows, std::current_exception());
+      if (!allowNullEle_) {
+        try {
+          VELOX_USER_FAIL(kErrorMessageEntryNotNull);
+        } catch (...) {
+          context.setErrors(rows, std::current_exception());
+        }
       }
-
       auto sizes = allocateSizes(rows.end(), context.pool());
       auto offsets = allocateSizes(rows.end(), context.pool());
 
@@ -129,8 +134,9 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     });
 
     auto resetSize = [&](vector_size_t row) { mutableSizes[row] = 0; };
+    auto nulls = allocateNulls(decodedRowVector->size(), context.pool());
+    auto* mutableNulls = nulls->asMutable<uint64_t>();
 
-    // Validate all map entries and map keys are not null.
     if (decodedRowVector->mayHaveNulls() || keyVector->mayHaveNulls() ||
         keyVector->mayHaveNullsRecursive()) {
       context.applyToSelectedNoThrow(rows, [&](vector_size_t row) {
@@ -140,9 +146,13 @@ class MapFromEntriesFunction : public exec::VectorFunction {
         for (auto i = 0; i < size; ++i) {
           // Check nulls in the top level row vector.
           const bool isMapEntryNull = decodedRowVector->isNullAt(offset + i);
-          if (isMapEntryNull) {
-            // Set the sizes to 0 so that the final map vector generated is
-            // valid in case we are inside a try. The map vector needs to be
+          if (isMapEntryNull && allowNullEle_) {
+            // Spark: For nulls in the top level row vector, return null.
+            bits::setNull(mutableNulls, row);
+            break;
+          } else if (isMapEntryNull) {
+            // Presto: Set the sizes to 0 so that the final map vector generated
+            // is valid in case we are inside a try. The map vector needs to be
             // valid because its consumed by checkDuplicateKeys before try
             // sets invalid rows to null.
             resetSize(row);
@@ -200,8 +210,6 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     } else {
       // Dictionary.
       auto indices = allocateIndices(decodedRowVector->size(), context.pool());
-      auto nulls = allocateNulls(decodedRowVector->size(), context.pool());
-      auto* mutableNulls = nulls->asMutable<uint64_t>();
       memcpy(
           indices->asMutable<vector_size_t>(),
           decodedRowVector->indices(),
@@ -224,7 +232,7 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     auto mapVector = std::make_shared<MapVector>(
         context.pool(),
         outputType,
-        inputArray->nulls(),
+        nulls,
         rows.end(),
         inputArray->offsets(),
         sizes,
@@ -234,11 +242,21 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     checkDuplicateKeys(mapVector, *remianingRows, context);
     return mapVector;
   }
+  const bool allowNullEle_;
 };
 } // namespace
 
-VELOX_DECLARE_VECTOR_FUNCTION(
-    udf_map_from_entries,
-    MapFromEntriesFunction::signatures(),
-    std::make_unique<MapFromEntriesFunction>());
+void registerMapFromEntriesFunction(const std::string& name) {
+  exec::registerVectorFunction(
+      name,
+      MapFromEntriesFunction::signatures(),
+      std::make_unique<MapFromEntriesFunction>(/*AllowNullEle=*/false));
+}
+
+void registerMapFromEntriesAllowNullEleFunction(const std::string& name) {
+  exec::registerVectorFunction(
+      name,
+      MapFromEntriesFunction::signatures(),
+      std::make_unique<MapFromEntriesFunction>(/*AllowNullEle=*/true));
+}
 } // namespace facebook::velox::functions
