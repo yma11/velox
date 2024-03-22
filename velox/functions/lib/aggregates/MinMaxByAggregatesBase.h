@@ -355,26 +355,17 @@ class MinMaxByAggregateBase : public exec::Aggregate {
 
     decodedValue_.decode(*baseRowVector->childAt(0), rows);
     decodedComparison_.decode(*baseRowVector->childAt(1), rows);
-
-    if (decodedIntermediateResult_.isConstantMapping() &&
-        decodedIntermediateResult_.isNullAt(0)) {
-      return;
-    }
-    if (decodedIntermediateResult_.mayHaveNulls()) {
-      rows.applyToSelected([&](vector_size_t i) {
-        if (decodedIntermediateResult_.isNullAt(i)) {
-          return;
-        }
-        const auto decodedIndex = decodedIntermediateResult_.index(i);
-        updateValues(
-            groups[i],
-            decodedValue_,
-            decodedComparison_,
-            decodedIndex,
-            decodedValue_.isNullAt(decodedIndex),
-            mayUpdate);
-      });
+    if (decodedIntermediateResult_.isConstantMapping()) {
+      const auto decodedIndex = decodedIntermediateResult_.index(0);
+      updateValues(
+          groups[0],
+          decodedValue_,
+          decodedComparison_,
+          decodedIndex,
+          decodedValue_.isNullAt(decodedIndex),
+          mayUpdate);
     } else {
+      // We don't need special null value handle in final aggregation
       rows.applyToSelected([&](vector_size_t i) {
         const auto decodedIndex = decodedIntermediateResult_.index(i);
         updateValues(
@@ -458,9 +449,6 @@ class MinMaxByAggregateBase : public exec::Aggregate {
     decodedComparison_.decode(*baseRowVector->childAt(1), rows);
 
     if (decodedIntermediateResult_.isConstantMapping()) {
-      if (decodedIntermediateResult_.isNullAt(0)) {
-        return;
-      }
       const auto decodedIndex = decodedIntermediateResult_.index(0);
       updateValues(
           group,
@@ -469,20 +457,6 @@ class MinMaxByAggregateBase : public exec::Aggregate {
           decodedIndex,
           decodedValue_.isNullAt(decodedIndex),
           mayUpdate);
-    } else if (decodedIntermediateResult_.mayHaveNulls()) {
-      rows.applyToSelected([&](vector_size_t i) {
-        if (decodedIntermediateResult_.isNullAt(i)) {
-          return;
-        }
-        const auto decodedIndex = decodedIntermediateResult_.index(i);
-        updateValues(
-            group,
-            decodedValue_,
-            decodedComparison_,
-            decodedIndex,
-            decodedValue_.isNullAt(decodedIndex),
-            mayUpdate);
-      });
     } else {
       rows.applyToSelected([&](vector_size_t i) {
         const auto decodedIndex = decodedIntermediateResult_.index(i);
