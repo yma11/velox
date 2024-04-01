@@ -132,7 +132,7 @@ class MapFromEntriesFunction : public exec::VectorFunction {
     });
 
     auto resetSize = [&](vector_size_t row) { mutableSizes[row] = 0; };
-    auto nulls = allocateNulls(rows.size(), context.pool());
+    auto nulls = allocateNulls(rows.end(), context.pool());
     auto* mutableNulls = nulls->asMutable<uint64_t>();
 
     if (decodedRowVector->mayHaveNulls() || keyVector->mayHaveNulls() ||
