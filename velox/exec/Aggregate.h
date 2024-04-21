@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <iostream>
 #include <folly/Synchronized.h>
 
 #include "velox/common/memory/HashStringAllocator.h"
@@ -384,6 +385,7 @@ class Aggregate {
       if (mask & nullMask_) {
         group[nullByte_] = mask & ~nullMask_;
         --numNulls_;
+        std::cout << "null in group is cleared." << std::endl;
         return true;
       }
     }

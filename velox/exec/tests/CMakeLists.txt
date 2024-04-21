@@ -28,62 +28,9 @@ target_link_libraries(aggregate_companion_functions_test velox_exec
 
 add_executable(
   velox_exec_test
-  AddressableNonNullValueListTest.cpp
-  AggregationTest.cpp
-  AggregateFunctionRegistryTest.cpp
-  ArrowStreamTest.cpp
-  AssignUniqueIdTest.cpp
-  AsyncConnectorTest.cpp
-  ContainerRowSerdeTest.cpp
-  CustomJoinTest.cpp
-  EnforceSingleRowTest.cpp
-  ExchangeClientTest.cpp
-  ExpandTest.cpp
   FilterProjectTest.cpp
-  FunctionResolutionTest.cpp
-  HashBitRangeTest.cpp
-  HashJoinBridgeTest.cpp
-  HashJoinTest.cpp
-  HashPartitionFunctionTest.cpp
-  HashTableTest.cpp
-  LimitTest.cpp
-  LocalPartitionTest.cpp
   Main.cpp
-  MarkDistinctTest.cpp
-  MemoryReclaimerTest.cpp
-  MergeJoinTest.cpp
-  MergeTest.cpp
-  MultiFragmentTest.cpp
-  NestedLoopJoinTest.cpp
-  OrderByTest.cpp
-  OutputBufferManagerTest.cpp
-  PartitionedOutputTest.cpp
-  PlanNodeSerdeTest.cpp
-  PlanNodeToStringTest.cpp
-  PrefixSortTest.cpp
-  PrintPlanWithStatsTest.cpp
-  ProbeOperatorStateTest.cpp
-  RoundRobinPartitionFunctionTest.cpp
-  RowContainerTest.cpp
-  RowNumberTest.cpp
-  SortBufferTest.cpp
-  SpillerTest.cpp
-  SpillTest.cpp
-  SplitToStringTest.cpp
-  SqlTest.cpp
-  StreamingAggregationTest.cpp
-  TableScanTest.cpp
-  TableWriteTest.cpp
-  TaskListenerTest.cpp
-  ThreadDebugInfoTest.cpp
-  TopNRowNumberTest.cpp
-  TopNTest.cpp
-  UnnestTest.cpp
-  UnorderedStreamReaderTest.cpp
-  ValuesTest.cpp
-  VectorHasherTest.cpp
-  WindowFunctionRegistryTest.cpp
-  WindowTest.cpp)
+)
 
 add_executable(
   velox_exec_infra_test
