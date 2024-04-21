@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <iostream>
 #include "velox/exec/HashAggregation.h"
 #include <optional>
 #include "velox/exec/Task.h"
@@ -317,6 +318,7 @@ RowVectorPtr HashAggregation::getOutput() {
     return nullptr;
   }
   numOutputRows_ += output_->size();
+  std::cout << "hashAgg " << output_->toString(0) << std::endl;
   return output_;
 }
 

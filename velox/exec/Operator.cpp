@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "velox/exec/Operator.h"
+#include <iostream>
 #include "velox/common/base/Counters.h"
 #include "velox/common/base/StatsReporter.h"
 #include "velox/common/base/SuccinctPrinter.h"
@@ -207,6 +208,9 @@ RowVectorPtr Operator::fillOutput(
   if (size == input_->size() &&
       (!mapping || isSequence(mapping->as<vector_size_t>(), 0, size))) {
     if (isIdentityProjection_) {
+      for (vector_size_t i = 0; i < input_->size(); i++) {
+        std::cout << "Identity projection:" << input_->toString(i) << std::endl;
+      }
       return std::move(input_);
     }
     wrapResults = false;
@@ -226,12 +230,17 @@ RowVectorPtr Operator::fillOutput(
       size,
       wrapResults ? mapping : nullptr);
 
-  return std::make_shared<RowVector>(
+  auto res = std::make_shared<RowVector>(
       operatorCtx_->pool(),
       outputType_,
       nullptr,
       size,
       std::move(projectedChildren));
+  for (vector_size_t i = 0; i < res->size(); i++) {
+    std::cout << "fill Output end: " << res->toString(i) << std::endl;
+  }
+
+  return res;
 }
 
 RowVectorPtr Operator::fillOutput(

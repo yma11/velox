@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <iostream>
 #include "Driver.h"
 #include <folly/ScopeGuard.h>
 #include <folly/executors/QueuedImmediateExecutor.h>
@@ -583,6 +584,7 @@ StopReason Driver::runInternal(
                   curOperatorId_,
                   kOpMethodGetOutput);
               if (intermediateResult) {
+                std::cout << "driver" <<intermediateResult->toString(0) << std::endl;
                 VELOX_CHECK(
                     intermediateResult->size() > 0,
                     "Operator::getOutput() must return nullptr or "
@@ -689,6 +691,7 @@ StopReason Driver::runInternal(
                 curOperatorId_,
                 kOpMethodGetOutput);
             if (result) {
+              std::cout << "final result " << result->toString(0) << std::endl;
               VELOX_CHECK(
                   result->size() > 0,
                   "Operator::getOutput() must return nullptr or "

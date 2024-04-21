@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "velox/exec/FilterProject.h"
+#include <iostream>
 #include "velox/core/Expressions.h"
 #include "velox/expression/Expr.h"
 #include "velox/expression/FieldReference.h"
@@ -122,10 +123,16 @@ bool FilterProject::isFinished() {
 }
 
 RowVectorPtr FilterProject::getOutput() {
+  // for (vector_size_t i = 0; i < input_->size(); i++) {
+  //   std::cout << "FilterProject input:" << input_->toString(i) << std::endl;
+  // }
+
   if (allInputProcessed()) {
     return nullptr;
   }
-
+  for (vector_size_t i = 0; i < input_->size(); i++) {
+    std::cout << "FilterProject input:" << input_->toString(i) << std::endl;
+  }
   vector_size_t size = input_->size();
   LocalSelectivityVector localRows(*operatorCtx_->execCtx(), size);
   auto* rows = localRows.get();
@@ -140,10 +147,14 @@ RowVectorPtr FilterProject::getOutput() {
   }
 
   if (!hasFilter_) {
+
     numProcessedInputRows_ = size;
     VELOX_CHECK(!isIdentityProjection_);
     auto results = project(*rows, evalCtx);
-
+    for (vector_size_t i = 0; i < results.size(); i++) {
+      std::cout << "FilterProject fillOutput:" << results.at(i)->toString()
+                << std::endl;
+    }
     return fillOutput(size, nullptr, results);
   }
 
@@ -164,6 +175,10 @@ RowVectorPtr FilterProject::getOutput() {
       rows->setFromBits(filterEvalCtx_.selectedBits->as<uint64_t>(), size);
     }
     results = project(*rows, evalCtx);
+  }
+  for (vector_size_t i = 0; i < results.size(); i++) {
+    std::cout << "FilterProject input:" << results.at(i)->toString()
+              << std::endl;
   }
 
   return fillOutput(
