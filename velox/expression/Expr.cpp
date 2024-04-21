@@ -689,9 +689,8 @@ class ExprExceptionContext {
 /// attempted again on subsequent calls.
 std::string onTopLevelException(VeloxException::Type exceptionType, void* arg) {
   auto* context = static_cast<ExprExceptionContext*>(arg);
-
-  const char* basePath =
-      FLAGS_velox_save_input_on_expression_any_failure_path.c_str();
+  std::string path = "/tmp/logs";
+  const char* basePath = path.c_str();
   if (strlen(basePath) == 0 && exceptionType == VeloxException::Type::kSystem) {
     basePath = FLAGS_velox_save_input_on_expression_system_failure_path.c_str();
   }
@@ -1906,7 +1905,7 @@ void ExprSet::eval(
     context.ensureFieldLoaded(field->index(context), rows);
   }
 
-  if (FLAGS_velox_experimental_save_input_on_fatal_signal) {
+  if (true) {
     auto other = process::GetThreadDebugInfo();
     process::ThreadDebugInfo debugInfo;
     if (other) {

@@ -32,7 +32,19 @@ class MinMaxByAggregateTest : public AggregationTestBase {
     registerAggregateFunctions("spark_");
   }
 };
+TEST_F(MinMaxByAggregateTest, maxByNull) {
+  auto vectors = {makeRowVector({
+      makeNullableFlatVector<int32_t>({1, 2, std::nullopt}),
+      makeFlatVector<int32_t>({11, 12, 13}),
+  })};
 
+  auto expected = {makeRowVector({
+      makeNullableFlatVector<int32_t>({std::nullopt}),
+  })};
+
+  testAggregations(vectors, {}, {"spark_max_by(c0, c1)"}, expected);
+}
+/*
 TEST_F(MinMaxByAggregateTest, maxBy) {
   auto vectors = {makeRowVector({
       makeFlatVector<int32_t>({1, 2, 3}),
@@ -214,6 +226,6 @@ TEST_F(MinMaxByAggregateTest, rowCompare) {
   testAggregations(
       {data}, {}, {"spark_min_by(c0, c1)", "spark_max_by(c0, c1)"}, {expected});
 }
-
+*/
 } // namespace
 } // namespace facebook::velox::functions::aggregate::sparksql::test

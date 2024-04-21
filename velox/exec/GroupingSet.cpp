@@ -520,6 +520,7 @@ void GroupingSet::initializeGlobalAggregation() {
 void GroupingSet::addGlobalAggregationInput(
     const RowVectorPtr& input,
     bool mayPushdown) {
+  std::cout << "GlobalAggregationInput " << input->toString(0) << std::endl;
   initializeGlobalAggregation();
 
   auto numRows = input->size();
@@ -584,8 +585,13 @@ bool GroupingSet::getGlobalAggregationOutput(
     auto& resultVector = result->childAt(aggregates_[i].output);
     if (isPartial_) {
       function->extractAccumulators(groups, 1, &resultVector);
+      std::cout << "extractAccumulator result" << resultVector->toString(0)
+                << std::endl;
+
     } else {
       function->extractValues(groups, 1, &resultVector);
+      std::cout << "extractValue result" << resultVector->toString(0)
+                << std::endl;
     }
   }
 
@@ -763,8 +769,13 @@ void GroupingSet::extractGroups(
     if (isPartial_) {
       function->extractAccumulators(
           groups.data(), groups.size(), &aggregateVector);
+      std::cout << "extractAccumulator result" << aggregateVector->toString()
+                << std::endl;
+
     } else {
       function->extractValues(groups.data(), groups.size(), &aggregateVector);
+      std::cout << "extractValue result" << aggregateVector->toString()
+                << std::endl;
     }
   }
 

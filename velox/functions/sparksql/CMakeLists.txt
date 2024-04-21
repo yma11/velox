@@ -60,7 +60,6 @@ add_subdirectory(window)
 if(${VELOX_ENABLE_AGGREGATES})
   add_subdirectory(aggregates)
 endif()
-
 if(${VELOX_BUILD_TESTING})
   add_subdirectory(tests)
   add_subdirectory(coverage)

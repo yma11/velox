@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <iostream>
 
 #include "velox/exec/Aggregate.h"
 #include "velox/exec/ContainerRowSerde.h"
@@ -179,9 +180,11 @@ class MinMaxByAggregateBase : public exec::Aggregate {
 
   void extractValues(char** groups, int32_t numGroups, VectorPtr* result)
       override {
+    std::cout << "extract values" << std::endl;
     VELOX_CHECK(result);
     (*result)->resize(numGroups);
-    uint64_t* rawNulls = getRawNulls(result->get());
+    uint64_t* rawNulls =
+        (*result)->mutableNulls(numGroups)->asMutable<uint64_t>();
 
     T* rawValues = nullptr;
     uint64_t* rawBoolValues = nullptr;
@@ -194,27 +197,37 @@ class MinMaxByAggregateBase : public exec::Aggregate {
         rawValues = vector->mutableRawValues();
       }
     }
-
+    // uint64_t* rawValueNulls =
+    //     vector->mutableRawNulls(rowVector->size())->asMutable<uint64_t>();
     for (int32_t i = 0; i < numGroups; ++i) {
       char* group = groups[i];
-      if (isNull(group) || valueIsNull(group)) {
+      if (isNull(group)) {
         (*result)->setNull(i, true);
+        std::cout << "extract group null" << std::endl;
       } else {
-        clearNull(rawNulls, i);
-        extract<T, ValueAccumulatorType>(
-            value(group), *result, i, rawValues, rawBoolValues);
+        // clearNull(rawNulls, i);
+        (*result)->setNull(i, false);
+        std::cout << "extract group not null" << std::endl;
+        const bool isValueNull = valueIsNull(group);
+        // bits::setNull(rawNulls, i, isValueNull);
+        if (LIKELY(!isValueNull)) {
+          extract<T, ValueAccumulatorType>(
+              value(group), *result, i, rawValues, rawBoolValues);
+        }
       }
     }
   }
 
   void extractAccumulators(char** groups, int32_t numGroups, VectorPtr* result)
       override {
+    std::cout << "extract accumulators" << std::endl;
     auto rowVector = (*result)->as<RowVector>();
     rowVector->resize(numGroups);
 
     auto valueVector = rowVector->childAt(0);
     auto comparisonVector = rowVector->childAt(1);
-    uint64_t* rawNulls = getRawNulls(rowVector);
+    uint64_t* rawNulls =
+        rowVector->mutableNulls(rowVector->size())->asMutable<uint64_t>();
 
     T* rawValues = nullptr;
     uint64_t* rawBoolValues = nullptr;
@@ -245,8 +258,11 @@ class MinMaxByAggregateBase : public exec::Aggregate {
       char* group = groups[i];
       if (isNull(group)) {
         rowVector->setNull(i, true);
+        std::cout << "extract group null" << std::endl;
       } else {
-        clearNull(rawNulls, i);
+        // clearNull(rawNulls, i);
+        rowVector->setNull(i, false);
+        std::cout << "extract group not null" << std::endl;
         const bool isValueNull = valueIsNull(group);
         bits::setNull(rawValueNulls, i, isValueNull);
         if (LIKELY(!isValueNull)) {
@@ -285,6 +301,18 @@ class MinMaxByAggregateBase : public exec::Aggregate {
     const auto* indices = decodedComparison_.indices();
     if (decodedValue_.mayHaveNulls() || decodedComparison_.mayHaveNulls()) {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "RAW input value is null" << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout << "RAW input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "RAW input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "RAW input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         if (checkNestedNulls(
                 decodedComparison_, indices, i, throwOnNestedNulls_)) {
           return;
@@ -299,6 +327,18 @@ class MinMaxByAggregateBase : public exec::Aggregate {
       });
     } else {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "RAW input value is null" << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout << "RAW input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "RAW input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "RAW input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         if (throwOnNestedNulls_) {
           checkNestedNulls(decodedComparison_, indices, i, throwOnNestedNulls_);
         }
@@ -323,24 +363,72 @@ class MinMaxByAggregateBase : public exec::Aggregate {
 
     if (decodedIntermediateResult_.isConstantMapping() &&
         decodedIntermediateResult_.isNullAt(0)) {
+      if (!decodedComparison_.isNullAt(0) || !decodedValue_.isNullAt(0)) {
+        std::cout
+            << "decodedIntermediate result is null, but value or comparison is not "
+            << std::endl;
+      }
       return;
     }
     if (decodedIntermediateResult_.mayHaveNulls()) {
-      rows.applyToSelected([&](vector_size_t i) {
-        if (decodedIntermediateResult_.isNullAt(i)) {
-          return;
-        }
-        const auto decodedIndex = decodedIntermediateResult_.index(i);
-        updateValues(
-            groups[i],
-            decodedValue_,
-            decodedComparison_,
-            decodedIndex,
-            decodedValue_.isNullAt(decodedIndex),
-            mayUpdate);
-      });
+      rows.applyToSelected(
+          [&](vector_size_t i) {
+            if (decodedIntermediateResult_.isNullAt(i)) {
+              if (decodedValue_.isNullAt(i)) {
+                std::cout << "addIntermediateResults is null, value is null"
+                          << std::endl;
+                if (!decodedComparison_.isNullAt(i)) {
+                  std::cout
+                      << "addIntermediateResults is null, input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+                }
+              } else {
+                std::cout << "addIntermediateResults is null, input value is "
+                          << decodedValue_.valueAt<int32_t>(i) << std::endl;
+                std::cout << "addIntermediateResults is null, input comparison is "
+                          << decodedComparison_.valueAt<int32_t>(i)
+                          << std::endl;
+              }
+              return;
+            }
+            if (decodedValue_.isNullAt(i)) {
+              std::cout << "addIntermediateResults input value is null"
+                        << std::endl;
+              if (!decodedComparison_.isNullAt(i)) {
+                std::cout << "addIntermediateResults input comparison is "
+                          << decodedComparison_.valueAt<int32_t>(i)
+                          << std::endl;
+              }
+            } else {
+              std::cout << "addIntermediateResults input value is "
+                        << decodedValue_.valueAt<int32_t>(i) << std::endl;
+              std::cout << "addIntermediateResults input comparison is "
+                        << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+            }
+            const auto decodedIndex = decodedIntermediateResult_.index(i);
+            updateValues(
+                groups[i],
+                decodedValue_,
+                decodedComparison_,
+                decodedIndex,
+                decodedValue_.isNullAt(decodedIndex),
+                mayUpdate);
+          });
     } else {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "addIntermediateResults input value is null"
+                    << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout << "addIntermediateResults input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "addIntermediateResults input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "addIntermediateResults input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         const auto decodedIndex = decodedIntermediateResult_.index(i);
         updateValues(
             groups[i],
@@ -382,6 +470,18 @@ class MinMaxByAggregateBase : public exec::Aggregate {
     } else if (
         decodedValue_.mayHaveNulls() || decodedComparison_.mayHaveNulls()) {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "addSingleGroupRaw input value is null" << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout << "addSingleGroupRaw input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "addSingleGroupRaw input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "addSingleGroupRaw input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         if (checkNestedNulls(
                 decodedComparison_, indices, i, throwOnNestedNulls_)) {
           return;
@@ -396,6 +496,18 @@ class MinMaxByAggregateBase : public exec::Aggregate {
       });
     } else {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "addSingleGroupRaw input value is null" << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout << "addSingleGroupRaw input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "addSingleGroupRaw input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "addSingleGroupRaw input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         if (throwOnNestedNulls_) {
           checkNestedNulls(decodedComparison_, indices, i, throwOnNestedNulls_);
         }
@@ -437,6 +549,20 @@ class MinMaxByAggregateBase : public exec::Aggregate {
     } else if (decodedIntermediateResult_.mayHaveNulls()) {
       rows.applyToSelected([&](vector_size_t i) {
         if (decodedIntermediateResult_.isNullAt(i)) {
+          if (decodedValue_.isNullAt(i)) {
+            std::cout
+                << "addSingleGroupIntermediateResults is null, value is null"
+                << std::endl;
+            if (!decodedComparison_.isNullAt(i)) {
+              std::cout << "addSingleGroupIntermediateResults is null, input comparison is "
+                        << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+            }
+          } else {
+            std::cout << "addSingleGroupIntermediateResults is null, input value is "
+                      << decodedValue_.valueAt<int32_t>(i) << std::endl;
+            std::cout << "addSingleGroupIntermediateResults is null, input comparison is "
+                      << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
           return;
         }
         const auto decodedIndex = decodedIntermediateResult_.index(i);
@@ -450,6 +576,20 @@ class MinMaxByAggregateBase : public exec::Aggregate {
       });
     } else {
       rows.applyToSelected([&](vector_size_t i) {
+        if (decodedValue_.isNullAt(i)) {
+          std::cout << "addSingleGroupIntermediateResults input value is null "
+                    << std::endl;
+          if (!decodedComparison_.isNullAt(i)) {
+            std::cout
+                << "addSingleGroupIntermediateResults input comparison is "
+                << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+          }
+        } else {
+          std::cout << "addSingleGroupIntermediateResults input value is "
+                    << decodedValue_.valueAt<int32_t>(i) << std::endl;
+          std::cout << "addSingleGroupIntermediateResults input comparison is "
+                    << decodedComparison_.valueAt<int32_t>(i) << std::endl;
+        }
         const auto decodedIndex = decodedIntermediateResult_.index(i);
         updateValues(
             group,
