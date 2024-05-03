@@ -96,7 +96,12 @@ class S3ReadFile final : public ReadFile {
     request.SetBucket(awsString(bucket_));
     request.SetKey(awsString(key_));
 
-    auto outcome = client_->HeadObject(request);
+    
+    Aws::S3::Model::HeadObjectOutcome outcome;
+    do{
+      outcome = client_->HeadObject(request);
+    }while(!outcome.IsSuccess() && outcome.GetError().GetResponseCode() == 503);
+    
     VELOX_CHECK_AWS_OUTCOME(
         outcome, "Failed to get metadata for S3 object", bucket_, key_);
     length_ = outcome.GetResult().GetContentLength();
