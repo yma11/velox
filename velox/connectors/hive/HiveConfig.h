@@ -97,6 +97,12 @@ class HiveConfig {
   /// Maximum concurrent TCP connections for a single http client.
   static constexpr const char* kS3MaxConnections = "hive.s3.max-connections";
 
+  /// Maximum retry attempts for a single http client.
+  static constexpr const char* kS3MaxAttempts = "hive.s3.max-attempts";
+
+  /// Retry mode for a single http client.
+  static constexpr const char* kS3RetryMode = "hive.s3.retry-mode";
+
   /// The GCS storage endpoint server.
   static constexpr const char* kGCSEndpoint = "hive.gcs.endpoint";
 
@@ -223,6 +229,10 @@ class HiveConfig {
   std::optional<std::string> s3SocketTimeout() const;
 
   std::optional<uint32_t> s3MaxConnections() const;
+
+  std::optional<uint32_t> s3MaxAttempts() const;
+
+  std::optional<std::string> s3RetryMode() const;
 
   std::string gcsEndpoint() const;
 
