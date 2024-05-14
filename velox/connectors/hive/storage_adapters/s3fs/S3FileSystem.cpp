@@ -27,6 +27,7 @@
 #include <glog/logging.h>
 #include <memory>
 #include <stdexcept>
+#include <iostream>
 
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProviderChain.h>
@@ -652,11 +653,15 @@ class S3FileSystem::Impl {
     auto retryMode = hiveConfig_->s3RetryMode();
     auto maxAttempts = hiveConfig_->s3MaxAttempts();
     if (retryMode.has_value()) {
+      std::cout << "***Current retry mode is:" << retryMode.value();
+      std::cout << "***Current max attempts is:" << maxAttempts.value();
       if (retryMode.value() == "standard") {
         if (maxAttempts.has_value()) {
-          VELOX_USER_CHECK(
-              (maxAttempts.value() > 0),
-              "Invalid configuration: specify 'hive.s3.max-attempts' > 0.");
+          VELOX_USER_CHECK_GE(
+              maxAttempts.value(),
+              0,
+              "Invalid configuration: specified 'hive.s3.max-attempts' value {} is < 0.",
+              maxAttempts.value());
           return std::make_shared<Aws::Client::StandardRetryStrategy>(
               maxAttempts.value());
         } else {
@@ -665,9 +670,11 @@ class S3FileSystem::Impl {
         }
       } else if (retryMode.value() == "adaptive") {
         if (maxAttempts.has_value()) {
-          VELOX_USER_CHECK(
-              (maxAttempts.value() > 0),
-              "Invalid configuration: specify 'hive.s3.max-attempts' > 0.");
+          VELOX_USER_CHECK_GE(
+              maxAttempts.value(),
+              0,
+              "Invalid configuration: specified 'hive.s3.max-attempts' value {} is < 0.",
+              maxAttempts.value());
           return std::make_shared<Aws::Client::AdaptiveRetryStrategy>(
               maxAttempts.value());
         } else {
@@ -676,9 +683,11 @@ class S3FileSystem::Impl {
         }
       } else if (retryMode.value() == "legacy") {
         if (maxAttempts.has_value()) {
-          VELOX_USER_CHECK(
-              (maxAttempts.value() > 0),
-              "Invalid configuration: specify 'hive.s3.max-attempts' > 0.");
+          VELOX_USER_CHECK_GE(
+              maxAttempts.value(),
+              0,
+              "Invalid configuration: specified 'hive.s3.max-attempts' value {} is < 0.",
+              maxAttempts.value());
           return std::make_shared<Aws::Client::DefaultRetryStrategy>(
               maxAttempts.value());
         } else {
