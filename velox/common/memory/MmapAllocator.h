@@ -107,6 +107,11 @@ class MmapAllocator : public MemoryAllocator {
       MachinePageCount increment,
       ContiguousAllocation& allocation) override;
 
+
+  bool allocateNonContiguousWithoutRetry(
+      const SizeMix& sizeMix,
+      Allocation& out) override;
+
   void freeContiguous(ContiguousAllocation& allocation) override;
 
   int64_t freeNonContiguous(Allocation& allocation) override;
@@ -315,10 +320,6 @@ class MmapAllocator : public MemoryAllocator {
     // Cumulative count of madvise for pages of 'this'
     uint64_t numAdvisedAway_ = 0;
   };
-
-  bool allocateNonContiguousWithoutRetry(
-      const SizeMix& sizeMix,
-      Allocation& out) override;
 
   bool allocateContiguousWithoutRetry(
       MachinePageCount numPages,

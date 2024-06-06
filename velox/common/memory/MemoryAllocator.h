@@ -401,9 +401,6 @@ class MemoryAllocator : public std::enable_shared_from_this<MemoryAllocator> {
   /// thread. The message is cleared after return.
   std::string getAndClearFailureMessage();
 
- protected:
-  explicit MemoryAllocator() = default;
-
   /// Represents a mix of blocks of different sizes for covering a single
   /// allocation.
   struct SizeMix {
@@ -423,6 +420,13 @@ class MemoryAllocator : public std::enable_shared_from_this<MemoryAllocator> {
     }
   };
 
+  virtual bool allocateNonContiguousWithoutRetry(
+      const SizeMix& sizeMix,
+      Allocation& out) = 0;
+
+ protected:
+  explicit MemoryAllocator() = default;
+
   /// The actual memory allocation function implementation without retry
   /// attempts by making space from cache.
   virtual bool allocateContiguousWithoutRetry(
@@ -430,10 +434,6 @@ class MemoryAllocator : public std::enable_shared_from_this<MemoryAllocator> {
       Allocation* collateral,
       ContiguousAllocation& allocation,
       MachinePageCount maxPages = 0) = 0;
-
-  virtual bool allocateNonContiguousWithoutRetry(
-      const SizeMix& sizeMix,
-      Allocation& out) = 0;
 
   virtual void* allocateBytesWithoutRetry(
       uint64_t bytes,
