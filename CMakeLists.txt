@@ -385,6 +385,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g ")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   execute_process(
